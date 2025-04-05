@@ -22,3 +22,6 @@ build/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Project
+data/
