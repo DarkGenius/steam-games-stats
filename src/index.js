@@ -2,13 +2,14 @@ const { getAndSortGames, isValidSteamId, getSteamId } = require('./utils/steam')
 const { getGameCompletionTime } = require('./api/hltb');
 const fs = require('fs');
 const path = require('path');
+const { Command } = require('commander');
 
 /**
  * Функция для получения и отображения данных о Steam играх
  * @param {string} steamIdOrVanityUrl - Steam ID или vanity URL
- * @param {string} saveFormat - Формат сохранения: 'json', 'text' или null
+ * @param {Object} options - Объект с опциями командной строки
  */
-async function handleSteamMode(steamIdOrVanityUrl, saveFormat) {
+async function handleSteamMode(steamIdOrVanityUrl, options) {
     try {
         // Проверяем, что передан Steam ID или vanity URL
         if (!steamIdOrVanityUrl) {
@@ -34,14 +35,44 @@ async function handleSteamMode(steamIdOrVanityUrl, saveFormat) {
         const games = await getAndSortGames(steamId);
         console.log(`Found ${games.length} games`);
 
+        // Сортируем игры по времени игры (по убыванию)
+        games.sort((a, b) => b.playtime_forever - a.playtime_forever);
+
+        // Если указан флаг --add-how-long, добавляем информацию о времени прохождения только для топ-10 игр
+        if (options.addHowLong) {
+            console.log('\nFetching completion times from HowLongToBeat for top 10 games...');
+            const topGames = games.slice(0, 10);
+            for (const game of topGames) {
+                console.log(`Fetching completion time for: ${game.name}`);
+                const completionTime = await getGameCompletionTime(game.name);
+                game.howLongToBeat = completionTime;
+            }
+        }
+
         // Выводим топ-10 игр по времени прохождения
         console.log('\nTop 10 games by playtime:');
         games.slice(0, 10).forEach((game, index) => {
-            console.log(`${index + 1}. ${game.name} (${game.playtime_forever} hours)`);
+            const playtimeHours = (game.playtime_forever / 60).toFixed(1);
+            let output = `${index + 1}. ${game.name} (${playtimeHours} hours)`;
+            
+            // Добавляем информацию о времени прохождения, если она есть
+            if (game.howLongToBeat) {
+                const hltb = game.howLongToBeat;
+                if (hltb.mainStory) {
+                    output += `\n  Main Story: ${hltb.mainStory} hours`;
+                }
+                if (hltb.mainPlusExtras) {
+                    output += `\n  Main + Extras: ${hltb.mainPlusExtras} hours`;
+                }
+                if (hltb.completionist) {
+                    output += `\n  Completionist: ${hltb.completionist} hours`;
+                }
+            }
+            console.log(output);
         });
 
         // Если нужно сохранить игры в файл
-        if (saveFormat) {
+        if (options.format) {
             // Создаем директорию data, если она не существует
             const dataDir = path.join(__dirname, '..', 'data');
             if (!fs.existsSync(dataDir)) {
@@ -49,15 +80,29 @@ async function handleSteamMode(steamIdOrVanityUrl, saveFormat) {
             }
             
             // Определяем расширение файла и путь
-            const extension = saveFormat === 'text' ? '.txt' : '.json';
+            const extension = options.format === 'text' ? '.txt' : '.json';
             const filePath = path.join(dataDir, `${steamId}_games${extension}`);
             
             // Сохраняем игры в файл в зависимости от формата
-            if (saveFormat === 'text') {
+            if (options.format === 'text') {
                 // Форматируем игры для текстового файла
-                const textContent = games.map((game, index) => 
-                    `${index + 1}. ${game.name} (${game.playtime_forever} hours)`
-                ).join('\n');
+                const textContent = games.map((game, index) => {
+                    const playtimeHours = (game.playtime_forever / 60).toFixed(1);
+                    let line = `${index + 1}. ${game.name} (${playtimeHours} hours)`;
+                    if (game.howLongToBeat) {
+                        const hltb = game.howLongToBeat;
+                        if (hltb.mainStory) {
+                            line += ` | Main Story: ${hltb.mainStory}h`;
+                        }
+                        if (hltb.mainPlusExtras) {
+                            line += ` | Main + Extras: ${hltb.mainPlusExtras}h`;
+                        }
+                        if (hltb.completionist) {
+                            line += ` | Completionist: ${hltb.completionist}h`;
+                        }
+                    }
+                    return line;
+                }).join('\n');
                 
                 fs.writeFileSync(filePath, textContent);
             } else {
@@ -89,6 +134,10 @@ async function handleHowLongMode(gameName) {
         const completionTime = await getGameCompletionTime(gameName);
         
         console.log('\nHow Long To Beat:');
+        if (completionTime.title) {
+            console.log(`Game: ${completionTime.title}`);
+        }
+        
         if (completionTime.mainStory) {
             console.log(`Main Story: ${completionTime.mainStory} hours`);
         } else {
@@ -112,40 +161,26 @@ async function handleHowLongMode(gameName) {
     }
 }
 
-/**
- * Основная функция для определения режима работы и вызова соответствующего обработчика
- */
-function main() {
-    const args = process.argv.slice(2);
-    
-    // Проверяем наличие флага --how-long
-    const howLongIndex = args.indexOf('--how-long');
-    if (howLongIndex !== -1) {
-        // Режим HowLongToBeat
-        const gameName = args[howLongIndex + 1];
-        handleHowLongMode(gameName);
-    } else {
-        // Режим Steam
-        const steamIdOrVanityUrl = args[0];
-        
-        // Проверяем наличие флага --save и его параметр
-        const saveIndex = args.indexOf('--save');
-        let saveFormat = null;
-        
-        if (saveIndex !== -1) {
-            // Проверяем, есть ли параметр после --save
-            const saveParam = args[saveIndex + 1];
-            if (saveParam && (saveParam === 'json' || saveParam === 'text')) {
-                saveFormat = saveParam;
-            } else {
-                // По умолчанию используем json
-                saveFormat = 'json';
-            }
-        }
-        
-        handleSteamMode(steamIdOrVanityUrl, saveFormat);
-    }
+const program = new Command();
+
+program
+    .option('--steam-id <id>', 'Steam ID to fetch games for')
+    .option('--how-long <game>', 'Get completion time for a specific game')
+    .option('--format <format>', 'Output format (json or text)', 'text')
+    .option('--add-how-long', 'Add HowLongToBeat information to Steam games')
+    .parse(process.argv);
+
+const options = program.opts();
+
+// Проверяем наличие обязательных параметров
+if (!options.steamId && !options.howLong) {
+    console.error('Error: Either --steam-id or --how-long must be specified');
+    process.exit(1);
 }
 
-// Запускаем основную функцию
-main(); 
+// Обрабатываем запрос в зависимости от режима
+if (options.howLong) {
+    handleHowLongMode(options.howLong);
+} else if (options.steamId) {
+    handleSteamMode(options.steamId, options);
+} 

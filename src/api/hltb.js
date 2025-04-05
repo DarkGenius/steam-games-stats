@@ -11,6 +11,7 @@ async function getGameCompletionTime(gameName) {
         console.log('Launching browser...');
         browser = await puppeteer.launch({
             headless: true, // Запускаем в headless режиме
+            dumpio: false, // Отключаем вывод отладочных сообщений Puppeteer
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -32,6 +33,35 @@ async function getGameCompletionTime(gameName) {
         await page.setExtraHTTPHeaders({
             'Accept-Language': 'en-US,en;q=0.9',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+        });
+
+        // Перенаправляем консоль браузера в консоль процесса
+        page.on('console', msg => {
+            const type = msg.type();
+            const text = msg.text();
+            
+            // Префиксируем сообщения для различения источника
+            switch (type) {
+                case 'log':
+                    console.log(`[Browser Log] ${text}`);
+                    break;
+                case 'error':
+                    console.error(`[Browser Error] ${text}`);
+                    break;
+                case 'warning':
+                    console.warn(`[Browser Warning] ${text}`);
+                    break;
+                case 'info':
+                    console.info(`[Browser Info] ${text}`);
+                    break;
+                default:
+                    console.log(`[Browser ${type}] ${text}`);
+            }
+        });
+
+        // Перенаправляем ошибки страницы
+        page.on('pageerror', error => {
+            console.error(`[Browser Page Error] ${error.message}`);
         });
 
         console.log('Navigating to HowLongToBeat...');
@@ -85,10 +115,15 @@ async function getGameCompletionTime(gameName) {
             if (gameCards.length > 0) {
                 const firstCard = gameCards[0];
                 
+                // Извлекаем название игры из тега h2
+                const gameTitleElement = firstCard.querySelector('h2 a');
+                const gameTitle = gameTitleElement ? gameTitleElement.textContent.trim() : null;
+                
                 // Находим все блоки с временем
-                const timeBlocks = firstCard.querySelectorAll('.time_100');
+                const timeBlocks = firstCard.querySelectorAll('div[class*="time_"]');
                 if (timeBlocks.length >= 3) {
                     return {
+                        title: gameTitle,
                         mainStory: extractTime(timeBlocks[0].textContent),
                         mainPlusExtras: extractTime(timeBlocks[1].textContent),
                         completionist: extractTime(timeBlocks[2].textContent)
@@ -101,6 +136,7 @@ async function getGameCompletionTime(gameName) {
 
         console.log('Extracted times:', searchResults);
         return searchResults || {
+            title: null,
             mainStory: null,
             mainPlusExtras: null,
             completionist: null
@@ -112,6 +148,7 @@ async function getGameCompletionTime(gameName) {
             stack: error.stack
         });
         return {
+            title: null,
             mainStory: null,
             mainPlusExtras: null,
             completionist: null
