@@ -1,9 +1,12 @@
 const { getAndSortGames, isValidSteamId, getSteamId } = require('./utils/steam');
 const { getGameCompletionTime } = require('./api/hltb');
+const { formatExecutionTime } = require('./utils/common');
 const fs = require('fs');
 const path = require('path');
 const { Command } = require('commander');
 const { createBrowser, getPreparedPage, closeBrowser } = require('./utils/browser');
+
+const MAX_GAMES_TO_FETCH_FROM_HLTB = 200;
 
 /**
  * Функция для получения и отображения данных о Steam играх
@@ -11,6 +14,7 @@ const { createBrowser, getPreparedPage, closeBrowser } = require('./utils/browse
  * @param {Object} options - Объект с опциями командной строки
  */
 async function handleSteamMode(steamIdOrVanityUrl, options) {
+    const startTime = Date.now();
     let browser = null;
     let page = null;
     try {
@@ -48,7 +52,7 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
             browser = await createBrowser();
             page = await getPreparedPage(browser);
 
-            const topGames = games.slice(0, 10);
+            const topGames = games.slice(0, MAX_GAMES_TO_FETCH_FROM_HLTB);
             for (const game of topGames) {
                 console.log(`Fetching completion time for: ${game.name}`);
                 const completionTime = await getGameCompletionTime(game.name, browser);
@@ -111,6 +115,10 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
         if (browser) {
             await closeBrowser(browser);  
         }
+        
+        // Выводим время выполнения
+        const executionTime = Date.now() - startTime;
+        console.log(`\nSteam mode execution time: ${formatExecutionTime(executionTime)}`);
     }
 }
 
@@ -119,6 +127,7 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
  * @param {string} gameName - Название игры
  */
 async function handleHowLongMode(gameName) {
+    const startTime = Date.now();
     try {
         if (!gameName) {
             console.error('Error: Please provide a game name');
@@ -154,6 +163,10 @@ async function handleHowLongMode(gameName) {
     } catch (error) {
         console.error('Error:', error.message);
         process.exit(1);
+    } finally {
+        // Выводим время выполнения
+        const executionTime = Date.now() - startTime;
+        console.log(`\nHowLongToBeat mode execution time: ${formatExecutionTime(executionTime)}`);
     }
 }
 
