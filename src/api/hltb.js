@@ -5,26 +5,50 @@ const path = require('path');
 
 const CARD_ITEM_SELECTOR = '#search-results-header > ul > li';
 const MAX_WAIT_SELECTOR_TIMEOUT = 10000; // 10 секунд в миллисекундах
+const CACHE_FILE = path.join(__dirname, '../../data/hltb_cache.json');
 
 // Создаем экземпляр кэша
-const cache = new Cache(path.join(__dirname, '../../data/hltb_cache.json'));
+let _cache = null;
+async function getCache() {
+    if (!_cache) {
+        _cache = await Cache.create(CACHE_FILE);
+    }
+    return _cache;
+}
 
 /**
  * Очищает название игры от суффиксов и специальных символов в конце
  * @param {string} gameName - Исходное название игры
+ * @param {string} mode - Режим очистки: 'full' (полная очистка), 'symbols' (только символы), 'suffixes' (только суффиксы), 'none' (без очистки)
  * @returns {string} Очищенное название игры
  */
-function cleanGameName(gameName) {
-    // Удаляем суффиксы
+function cleanGameName(gameName, mode = 'full') {
     let cleanedName = gameName;
-    for (const suffix of GAME_SUFFIXES) {
-        if (cleanedName.endsWith(suffix)) {
-            cleanedName = cleanedName.slice(0, -suffix.length).trim();
+    
+    // Режим без очистки
+    if (mode === 'none') {
+        return cleanedName;
+    }
+
+    cleanedName = gameName.trim();
+    
+    // Режим очистки только от суффиксов
+    if (mode === 'suffixes' || mode === 'full') {
+        for (const suffix of GAME_SUFFIXES) {
+            if (cleanedName.endsWith(suffix)) {
+                cleanedName = cleanedName.slice(0, -suffix.length).trim();
+            }
         }
     }
     
-    // Удаляем специальные символы в конце
-    cleanedName = cleanedName.replace(/[-:—]\s*$/, '').trim();
+    // Режим очистки только от специальных символов
+    if (mode === 'symbols' || mode === 'full') {
+        // Удаляем специальные символы в конце
+        cleanedName = cleanedName.replace(/[-:—]\s*$/, '').trim();
+        
+        // Удаляем символы товарных знаков и другие специальные символы
+        cleanedName = cleanedName.replace(/[®™©℠℗]/g, '').trim();
+    }
     
     return cleanedName;
 }
@@ -55,19 +79,37 @@ async function extractGameCompletionData(page) {
 
         // Функция для извлечения времени из текста
         function extractTime(timeText) {
-            // Удаляем слово "Hours" и пробелы
-            const timeStr = timeText.replace('Hours', '').trim();
+            // Проверяем, указано ли время в минутах или часах
+            const isMinutes = timeText.includes('Mins');
+            const isHours = timeText.includes('Hours');
             
-            // Обрабатываем дроби
-            if (timeStr.includes('½')) {
-                return parseFloat(timeStr.replace('½', '.5'));
-            } else if (timeStr.includes('¼')) {
-                return parseFloat(timeStr.replace('¼', '.25'));
-            } else if (timeStr.includes('¾')) {
-                return parseFloat(timeStr.replace('¾', '.75'));
+            if (!isMinutes && !isHours) {
+                console.log(`Unknown time format: ${timeText}`);
+                return null;
             }
             
-            return parseFloat(timeStr);
+            // Удаляем слова "Hours" или "Mins" и пробелы
+            const timeStr = timeText.replace('Hours', '').replace('Mins', '').trim();
+            
+            // Обрабатываем дроби
+            let timeValue;
+            if (timeStr.includes('½')) {
+                timeValue = parseFloat(timeStr.replace('½', '.5'));
+            } else if (timeStr.includes('¼')) {
+                timeValue = parseFloat(timeStr.replace('¼', '.25'));
+            } else if (timeStr.includes('¾')) {
+                timeValue = parseFloat(timeStr.replace('¾', '.75'));
+            } else {
+                timeValue = parseFloat(timeStr);
+            }
+            
+            // Если время указано в минутах, конвертируем в часы
+            if (isMinutes) {
+                timeValue = timeValue / 60;
+            }
+            
+            // Округляем до 2 знаков после запятой
+            return Number(timeValue.toFixed(2));
         }
 
         // Извлекаем данные из первой карточки
@@ -80,13 +122,31 @@ async function extractGameCompletionData(page) {
             
             // Находим все блоки с временем
             const timeBlocks = firstCard.querySelectorAll('div[class*="time_"]');
+            
+            // Создаем объект с результатами, инициализируя все значения как null
+            const result = {
+                title: gameTitle,
+                mainStory: null,
+                mainPlusExtras: null,
+                completionist: null
+            };
+            
+            // Заполняем значения из найденных блоков
+            if (timeBlocks.length >= 1) {
+                result.mainStory = extractTime(timeBlocks[0].textContent);
+            }
+            
+            if (timeBlocks.length >= 2) {
+                result.mainPlusExtras = extractTime(timeBlocks[1].textContent);
+            }
+            
             if (timeBlocks.length >= 3) {
-                return {
-                    title: gameTitle,
-                    mainStory: extractTime(timeBlocks[0].textContent),
-                    mainPlusExtras: extractTime(timeBlocks[1].textContent),
-                    completionist: extractTime(timeBlocks[2].textContent)
-                };
+                result.completionist = extractTime(timeBlocks[2].textContent);
+            }
+            
+            // Возвращаем результат, если хотя бы одно значение не null
+            if (result.mainStory !== null || result.mainPlusExtras !== null || result.completionist !== null) {
+                return result;
             }
         }
 
@@ -98,14 +158,20 @@ async function extractGameCompletionData(page) {
  * Получает информацию о времени прохождения игры с сайта HowLongToBeat
  * @param {string} gameName - Название игры
  * @param {Object} [existingBrowser] - Существующий экземпляр браузера
+ * @param {boolean} [updateCache=false] - Флаг, указывающий, что нужно обновить данные из кэша
  * @returns {Promise<Object|null>} Информация о времени прохождения
  */
-async function getGameCompletionTime(gameName, existingBrowser = null) {
-    // Проверяем кэш
-    const cachedData = cache.get(gameName);
-    if (cachedData) {
-        console.log(`Using cached data for: ${gameName}`);
-        return cachedData;
+async function getGameCompletionTime(gameName, existingBrowser = null, updateCache = false) {
+    const cache = await getCache();
+    // Проверяем кэш только если не указан флаг updateCache
+    if (!updateCache) {
+        const cachedData = cache.get(gameName);
+        if (cachedData !== undefined) {
+            console.log(`Using cached data for: ${gameName}`);
+            return cachedData;
+        }
+    } else {
+        console.log(`Cache update requested for: ${gameName}`);
     }
 
     let browser = existingBrowser;
@@ -133,10 +199,13 @@ async function getGameCompletionTime(gameName, existingBrowser = null) {
         // Создаем объект для кэша
         let result = null;
         
-        // Пробуем поиск с исходным названием
+        // Очищаем название игры только от специальных символов для первого поиска
+        const symbolsCleanedName = cleanGameName(searchName, 'symbols');
+        
+        // Пробуем поиск с названием, очищенным от специальных символов
         try {
             // Переходим на страницу поиска
-            const searchUrl = `https://howlongtobeat.com/?q=${encodeURIComponent(searchName)}`;
+            const searchUrl = `https://howlongtobeat.com/?q=${encodeURIComponent(symbolsCleanedName)}`;
             await page.goto(searchUrl, { waitUntil: 'domcontentloaded' });
 
             await page.waitForSelector(CARD_ITEM_SELECTOR, { timeout: MAX_WAIT_SELECTOR_TIMEOUT });
@@ -159,61 +228,59 @@ async function getGameCompletionTime(gameName, existingBrowser = null) {
                 if (searchResults.title && searchResults.title !== gameName) {
                     result.hltbGameTitle = searchResults.title;
                 }
-                
-                // Сохраняем результат в кэш
-                await cache.add(gameName, result);
             }
         } catch (error) {
-            console.error('Error during initial search:', error);
-            // Продолжаем выполнение, чтобы попробовать поиск без суффикса
+            console.error('Error during search with symbols-cleaned name:', error);
         }
         
-        // Если не удалось найти игру, пробуем поискать без суффикса
+        // Если не удалось найти игру с названием, очищенным от символов, пробуем поиск с полной очисткой
         if (!result) {
             // Очищаем название игры от суффиксов и специальных символов
-            const cleanedName = cleanGameName(gameName);
+            const fullyCleanedName = cleanGameName(searchName, 'full');
             
-            // Если очищенное название отличается от исходного, пробуем поиск с ним
-            if (cleanedName !== gameName) {
-                console.log(`Trying search with cleaned name: ${cleanedName}`);
+            // Если полностью очищенное название отличается от очищенного от символов, пробуем поиск с ним
+            if (fullyCleanedName !== symbolsCleanedName) {
+                console.log(`Trying search with fully cleaned name: ${fullyCleanedName}`);
                 
                 try {
-                    // Переходим на страницу поиска с очищенным названием
-                    const cleanedSearchUrl = `https://howlongtobeat.com/?q=${encodeURIComponent(cleanedName)}`;
-                    await page.goto(cleanedSearchUrl, { waitUntil: 'domcontentloaded' });
+                    // Переходим на страницу поиска с полностью очищенным названием
+                    const fullyCleanedSearchUrl = `https://howlongtobeat.com/?q=${encodeURIComponent(fullyCleanedName)}`;
+                    await page.goto(fullyCleanedSearchUrl, { waitUntil: 'domcontentloaded' });
                     
                     await page.waitForSelector(CARD_ITEM_SELECTOR, { timeout: MAX_WAIT_SELECTOR_TIMEOUT });
                     
                     // Анализируем результаты поиска
-                    const cleanedSearchResults = await extractGameCompletionData(page);
+                    const fullyCleanedSearchResults = await extractGameCompletionData(page);
                     
-                    if (cleanedSearchResults) {
-                        console.log('Found game with cleaned name:', cleanedSearchResults);
+                    if (fullyCleanedSearchResults) {
+                        console.log('Found game with fully cleaned name:', fullyCleanedSearchResults);
                         
                         // Создаем объект только с данными о времени
                         result = {
-                            mainStory: cleanedSearchResults.mainStory,
-                            mainPlusExtras: cleanedSearchResults.mainPlusExtras,
-                            completionist: cleanedSearchResults.completionist
+                            mainStory: fullyCleanedSearchResults.mainStory,
+                            mainPlusExtras: fullyCleanedSearchResults.mainPlusExtras,
+                            completionist: fullyCleanedSearchResults.completionist
                         };
                         
                         // Если название игры в HLTB отличается от названия в Steam, добавляем его
-                        if (cleanedSearchResults.title && cleanedSearchResults.title !== gameName) {
-                            result.hltbGameTitle = cleanedSearchResults.title;
+                        if (fullyCleanedSearchResults.title && fullyCleanedSearchResults.title !== gameName) {
+                            result.hltbGameTitle = fullyCleanedSearchResults.title;
                         }
-                        
-                        // Сохраняем результат в кэш
-                        await cache.add(gameName, result);
                     }
                 } catch (error) {
-                    console.error(`Error during search with cleaned name:`, error);
+                    console.error(`Error during search with fully cleaned name:`, error);
                 }
             }
         }
+        
+        // Сохраняем результат в кэш (даже если это null)
+        await cache.add(gameName, result);
 
         return result;
     } catch (error) {
         console.error('Error in getGameCompletionTime:', error);
+        // Сохраняем null в кэш в случае ошибки
+        await cache.add(gameName, null);
         return null;
     } finally {
         // Закрываем браузер только если мы его создали

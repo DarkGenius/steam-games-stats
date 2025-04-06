@@ -11,13 +11,14 @@ class Cache {
     constructor(cacheFile) {
         this.cacheFile = cacheFile;
         this.cache = {};
-        this.init();
+        this.initialized = false;
     }
 
     /**
      * Инициализация кэша
      */
     async init() {
+        if (this.initialized) return;
         try {
             // Создаем директорию для кэша, если её нет
             const cacheDir = path.dirname(this.cacheFile);
@@ -27,6 +28,7 @@ class Cache {
             try {
                 const data = await fs.readFile(this.cacheFile, 'utf8');
                 this.cache = JSON.parse(data);
+                this.initialized = true;
             } catch (error) {
                 if (error.code === 'ENOENT') {
                     // Если файл не существует, создаем его с пустым объектом
@@ -39,6 +41,18 @@ class Cache {
             console.error('Error initializing cache:', error);
             throw error;
         }
+    }
+
+    /**
+     * Создает и инициализирует новый экземпляр кэша
+     * @param {string} cacheFile - Путь к файлу кэша
+     * @returns {Promise<Cache>} Инициализированный экземпляр кэша
+     * @throws {Error} Ошибка при инициализации кэша
+     */
+    static async create(cacheFile) {
+        const cache = new Cache(cacheFile);
+        await cache.init();
+        return cache;
     }
 
     /**

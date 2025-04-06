@@ -6,7 +6,7 @@ const path = require('path');
 const { Command } = require('commander');
 const { createBrowser, getPreparedPage, closeBrowser } = require('./utils/browser');
 
-const MAX_GAMES_TO_FETCH_FROM_HLTB = 200;
+const MAX_GAMES_TO_FETCH_FROM_HLTB = 400;
 
 /**
  * Функция для получения и отображения данных о Steam играх
@@ -55,7 +55,7 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
             const topGames = games.slice(0, MAX_GAMES_TO_FETCH_FROM_HLTB);
             for (const game of topGames) {
                 console.log(`Fetching completion time for: ${game.name}`);
-                const completionTime = await getGameCompletionTime(game.name, browser);
+                const completionTime = await getGameCompletionTime(game.name, browser, options.updateCache);
                 game.howLongToBeat = completionTime;
             }
         }
@@ -125,8 +125,9 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
 /**
  * Функция для получения и отображения данных о времени прохождения игры
  * @param {string} gameName - Название игры
+ * @param {boolean} updateCache - Флаг, указывающий, что нужно обновить данные из кэша
  */
-async function handleHowLongMode(gameName) {
+async function handleHowLongMode(gameName, updateCache) {
     const startTime = Date.now();
     try {
         if (!gameName) {
@@ -136,26 +137,26 @@ async function handleHowLongMode(gameName) {
         }
 
         console.log(`Fetching completion time for: ${gameName}`);
-        const completionTime = await getGameCompletionTime(gameName);
+        const completionTime = await getGameCompletionTime(gameName, null, updateCache);
         
         console.log('\nHow Long To Beat:');
-        if (completionTime.title) {
+        if (completionTime && completionTime.title) {
             console.log(`Game: ${completionTime.title}`);
         }
         
-        if (completionTime.mainStory) {
+        if (completionTime && completionTime.mainStory) {
             console.log(`Main Story: ${completionTime.mainStory} hours`);
         } else {
             console.log('Main Story: Not available');
         }
         
-        if (completionTime.mainPlusExtras) {
+        if (completionTime && completionTime.mainPlusExtras) {
             console.log(`Main + Extras: ${completionTime.mainPlusExtras} hours`);
         } else {
             console.log('Main + Extras: Not available');
         }
         
-        if (completionTime.completionist) {
+        if (completionTime && completionTime.completionist) {
             console.log(`Completionist: ${completionTime.completionist} hours`);
         } else {
             console.log('Completionist: Not available');
@@ -194,6 +195,7 @@ program
     .option('--how-long <game>', 'Get completion time for a specific game')
     .option('--format <format>', 'Output format (json or text)', 'text')
     .option('--add-how-long', 'Add HowLongToBeat information to Steam games')
+    .option('--update-cache', 'Update cache for HowLongToBeat')
     .parse(process.argv);
 
 const options = program.opts();
@@ -206,7 +208,7 @@ if (!options.steamId && !options.howLong) {
 
 // Обрабатываем запрос в зависимости от режима
 if (options.howLong) {
-    handleHowLongMode(options.howLong);
+    handleHowLongMode(options.howLong, options.updateCache);
 } else if (options.steamId) {
     handleSteamMode(options.steamId, options);
 } 

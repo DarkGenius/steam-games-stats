@@ -8,7 +8,16 @@
  * Значение - название игры в HowLongToBeat
  */
 const GAME_NAME_MAP = {
-    'Grand Theft Auto V Legacy': 'GTA V'
+    'Grand Theft Auto V Legacy': 'GTA V',
+    'Epistory - Typing Chronicles': 'Epistory: Typing Chronicle',
+    'Hard Truck: Apocalypse Rise Of Clans / Ex Machina: Meridian 113': 'Ex Machina: Meridian 113',
+    'Never Alone (Kisima Ingitchuna)': 'Never Alone',
+    'Jagged Alliance - Back in Action': 'Jagged Alliance: Back in Action',
+    'Brothers - A Tale of Two Sons': 'Brothers: A Tale of Two Sons',
+    'Talisman: Prologue': 'Talisman Prologue',
+    'SpellForce 2 - Demons of the Past': 'SpellForce 2: Demons of the Past',
+    'Savant - Ascent': 'Savant: Ascent',
+    'Hard Truck Apocalypse / Ex Machina': 'Ex Machina',
 };
 
 /**
@@ -25,7 +34,16 @@ const GAME_SUFFIXES = [
     'GOTY Edition',
     'Deluxe Edition',
     'Ultimate Edition',
-    'Director\'s Cut'
+    'Director\'s Cut',
+    'Anniversary Edition',
+    'Collector\'s Edition',
+    'Ultimate Edition',
+    'Legendary Edition',
+    '[Enhanced Edition]',
+    'Steam Edition',
+    'E.Edition',
+    '(Classic)',
+    'Digital Classic Edition',
 ];
 
 module.exports = {
