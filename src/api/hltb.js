@@ -1,78 +1,40 @@
-const puppeteer = require('puppeteer');
+const { createBrowser, preparePage, closeBrowser, getPreparedPage } = require('../utils/browser');
+const { GAME_NAME_MAP } = require('../utils/const');
 
 /**
- * Fetches and parses game completion time from HowLongToBeat
- * @param {string} gameName - Name of the game to search for
- * @returns {Promise<{mainStory: string|null, mainPlusExtras: string|null, completionist: string|null}>}
+ * Получает информацию о времени прохождения игры с сайта HowLongToBeat
+ * @param {string} gameName - Название игры
+ * @param {Object} [existingBrowser] - Существующий экземпляр браузера
+ * @returns {Promise<Object|null>} Информация о времени прохождения
  */
-async function getGameCompletionTime(gameName) {
-    let browser = null;
+async function getGameCompletionTime(gameName, existingBrowser = null) {
+    let browser = existingBrowser;
+    let page = null;
+    let shouldCloseBrowser = false;
+
     try {
-        console.log('Launching browser...');
-        browser = await puppeteer.launch({
-            headless: true, // Запускаем в headless режиме
-            dumpio: false, // Отключаем вывод отладочных сообщений Puppeteer
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-infobars',
-                '--window-position=0,0',
-                '--ignore-certifcate-errors',
-                '--ignore-certifcate-errors-spki-list',
-                '--user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"'
-            ]
-        });
+        // Используем существующий браузер или создаем новый
+        if (!browser) {
+            browser = await createBrowser();
+            shouldCloseBrowser = true;
+        }
 
-        // Create new page
-        const page = await browser.newPage();
+        // Получаем готовую страницу
+        page = await getPreparedPage(browser);
+
+        // Используем соответствие из GAME_NAME_MAP, если оно есть
+        const searchName = GAME_NAME_MAP[gameName] || gameName;
+        if (GAME_NAME_MAP[gameName]) {
+            console.log(`Searching for game: ${searchName} (original: ${gameName})`);
+        } else {
+            console.log(`Searching for game: ${searchName}`);
+        }
         
-        // Set viewport
-        await page.setViewport({ width: 1280, height: 800 });
+        // Переходим на страницу поиска
+        const searchUrl = `https://howlongtobeat.com/?q=${encodeURIComponent(searchName)}`;
+        await page.goto(searchUrl, { waitUntil: 'domcontentloaded' });
 
-        // Установка дополнительных заголовков
-        await page.setExtraHTTPHeaders({
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-        });
-
-        // Перенаправляем консоль браузера в консоль процесса
-        page.on('console', msg => {
-            const type = msg.type();
-            const text = msg.text();
-            
-            // Префиксируем сообщения для различения источника
-            switch (type) {
-                case 'log':
-                    console.log(`[Browser Log] ${text}`);
-                    break;
-                case 'error':
-                    console.error(`[Browser Error] ${text}`);
-                    break;
-                case 'warning':
-                    console.warn(`[Browser Warning] ${text}`);
-                    break;
-                case 'info':
-                    console.info(`[Browser Info] ${text}`);
-                    break;
-                default:
-                    console.log(`[Browser ${type}] ${text}`);
-            }
-        });
-
-        // Перенаправляем ошибки страницы
-        page.on('pageerror', error => {
-            console.error(`[Browser Page Error] ${error.message}`);
-        });
-
-        console.log('Navigating to HowLongToBeat...');
-        // Navigate to HowLongToBeat with search query
-        await page.goto(`https://howlongtobeat.com/?q=${encodeURIComponent(gameName)}`, {
-            waitUntil: 'domcontentloaded',
-            timeout: 60000
-        });
-
-        // Даем время для загрузки и рендеринга
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await page.waitForSelector('#search-results-header > ul > li', { timeout: 10000 });
 
         console.log('Analyzing search results...');
         // Анализируем структуру результатов поиска
@@ -143,20 +105,11 @@ async function getGameCompletionTime(gameName) {
         };
     } catch (error) {
         console.error('Error fetching game completion time:', error);
-        console.error('Error details:', {
-            message: error.message,
-            stack: error.stack
-        });
-        return {
-            title: null,
-            mainStory: null,
-            mainPlusExtras: null,
-            completionist: null
-        };
+        return null;
     } finally {
-        if (browser) {
-            await browser.close();
-            console.log('Browser closed');
+        // Закрываем браузер только если мы его создали
+        if (shouldCloseBrowser && browser) {
+            await closeBrowser(browser);
         }
     }
 }

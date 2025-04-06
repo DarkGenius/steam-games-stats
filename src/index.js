@@ -3,6 +3,7 @@ const { getGameCompletionTime } = require('./api/hltb');
 const fs = require('fs');
 const path = require('path');
 const { Command } = require('commander');
+const { createBrowser, getPreparedPage, closeBrowser } = require('./utils/browser');
 
 /**
  * Функция для получения и отображения данных о Steam играх
@@ -10,6 +11,8 @@ const { Command } = require('commander');
  * @param {Object} options - Объект с опциями командной строки
  */
 async function handleSteamMode(steamIdOrVanityUrl, options) {
+    let browser = null;
+    let page = null;
     try {
         // Проверяем, что передан Steam ID или vanity URL
         if (!steamIdOrVanityUrl) {
@@ -41,10 +44,14 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
         // Если указан флаг --add-how-long, добавляем информацию о времени прохождения только для топ-10 игр
         if (options.addHowLong) {
             console.log('\nFetching completion times from HowLongToBeat for top 10 games...');
+            // Создаем браузер и страницу
+            browser = await createBrowser();
+            page = await getPreparedPage(browser);
+
             const topGames = games.slice(0, 10);
             for (const game of topGames) {
                 console.log(`Fetching completion time for: ${game.name}`);
-                const completionTime = await getGameCompletionTime(game.name);
+                const completionTime = await getGameCompletionTime(game.name, browser);
                 game.howLongToBeat = completionTime;
             }
         }
@@ -85,26 +92,7 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
             
             // Сохраняем игры в файл в зависимости от формата
             if (options.format === 'text') {
-                // Форматируем игры для текстового файла
-                const textContent = games.map((game, index) => {
-                    const playtimeHours = (game.playtime_forever / 60).toFixed(1);
-                    let line = `${index + 1}. ${game.name} (${playtimeHours} hours)`;
-                    if (game.howLongToBeat) {
-                        const hltb = game.howLongToBeat;
-                        if (hltb.mainStory) {
-                            line += ` | Main Story: ${hltb.mainStory}h`;
-                        }
-                        if (hltb.mainPlusExtras) {
-                            line += ` | Main + Extras: ${hltb.mainPlusExtras}h`;
-                        }
-                        if (hltb.completionist) {
-                            line += ` | Completionist: ${hltb.completionist}h`;
-                        }
-                    }
-                    return line;
-                }).join('\n');
-                
-                fs.writeFileSync(filePath, textContent);
+                await saveGamesToTextFile(games, steamId);
             } else {
                 // Сохраняем в формате JSON
                 fs.writeFileSync(filePath, JSON.stringify(games, null, 2));
@@ -115,6 +103,14 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
     } catch (error) {
         console.error('Error:', error.message);
         process.exit(1);
+    } finally {
+        // Закрываем страницу и браузер в конце работы
+        if (page) {
+            await page.close();
+        }
+        if (browser) {
+            await closeBrowser(browser);  
+        }
     }
 }
 
@@ -159,6 +155,23 @@ async function handleHowLongMode(gameName) {
         console.error('Error:', error.message);
         process.exit(1);
     }
+}
+
+/**
+ * Сохраняет список игр в текстовый файл
+ * @param {Array} games - Массив игр
+ * @param {string} steamId - Steam ID пользователя
+ */
+async function saveGamesToTextFile(games, steamId) {
+    const fileName = `data/${steamId}_games.txt`;
+    const fileContent = games.map((game, index) => {
+        const completionTimes = game.howLongToBeat || {};
+        const playtimeHours = (game.playtime_forever / 60).toFixed(1);
+        return `${index + 1}. ${game.name} (playTime: ${playtimeHours} hours, mainStory: ${completionTimes.mainStory || 'N/A'} hours, mainAndExtras: ${completionTimes.mainPlusExtras || 'N/A'} hours, completionist: ${completionTimes.completionist || 'N/A'} hours)`;
+    }).join('\n');
+
+    fs.writeFileSync(fileName, fileContent, 'utf8');
+    console.log(`Games saved to ${fileName}`);
 }
 
 const program = new Command();
