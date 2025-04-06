@@ -10,6 +10,26 @@ const MAX_WAIT_SELECTOR_TIMEOUT = 10000; // 10 секунд в миллисек�
 const cache = new Cache(path.join(__dirname, '../../data/hltb_cache.json'));
 
 /**
+ * Очищает название игры от суффиксов и специальных символов в конце
+ * @param {string} gameName - Исходное название игры
+ * @returns {string} Очищенное название игры
+ */
+function cleanGameName(gameName) {
+    // Удаляем суффиксы
+    let cleanedName = gameName;
+    for (const suffix of GAME_SUFFIXES) {
+        if (cleanedName.endsWith(suffix)) {
+            cleanedName = cleanedName.slice(0, -suffix.length).trim();
+        }
+    }
+    
+    // Удаляем специальные символы в конце
+    cleanedName = cleanedName.replace(/[-:—]\s*$/, '').trim();
+    
+    return cleanedName;
+}
+
+/**
  * Извлекает данные о времени прохождения игры из результатов поиска
  * @param {Object} page - Страница Puppeteer
  * @returns {Promise<Object|null>} Данные о времени прохождения или null, если данные не найдены
@@ -150,46 +170,43 @@ async function getGameCompletionTime(gameName, existingBrowser = null) {
         
         // Если не удалось найти игру, пробуем поискать без суффикса
         if (!result) {
-            for (const suffix of GAME_SUFFIXES) {
-                if (gameName.endsWith(suffix)) {
-                    const baseName = gameName.slice(0, -suffix.length).trim();
-                    console.log(`Trying search without suffix: ${baseName} (removed: ${suffix})`);
+            // Очищаем название игры от суффиксов и специальных символов
+            const cleanedName = cleanGameName(gameName);
+            
+            // Если очищенное название отличается от исходного, пробуем поиск с ним
+            if (cleanedName !== gameName) {
+                console.log(`Trying search with cleaned name: ${cleanedName}`);
+                
+                try {
+                    // Переходим на страницу поиска с очищенным названием
+                    const cleanedSearchUrl = `https://howlongtobeat.com/?q=${encodeURIComponent(cleanedName)}`;
+                    await page.goto(cleanedSearchUrl, { waitUntil: 'domcontentloaded' });
                     
-                    try {
-                        // Переходим на страницу поиска с базовым названием
-                        const baseSearchUrl = `https://howlongtobeat.com/?q=${encodeURIComponent(baseName)}`;
-                        await page.goto(baseSearchUrl, { waitUntil: 'domcontentloaded' });
+                    await page.waitForSelector(CARD_ITEM_SELECTOR, { timeout: MAX_WAIT_SELECTOR_TIMEOUT });
+                    
+                    // Анализируем результаты поиска
+                    const cleanedSearchResults = await extractGameCompletionData(page);
+                    
+                    if (cleanedSearchResults) {
+                        console.log('Found game with cleaned name:', cleanedSearchResults);
                         
-                        await page.waitForSelector(CARD_ITEM_SELECTOR, { timeout: MAX_WAIT_SELECTOR_TIMEOUT });
+                        // Создаем объект только с данными о времени
+                        result = {
+                            mainStory: cleanedSearchResults.mainStory,
+                            mainPlusExtras: cleanedSearchResults.mainPlusExtras,
+                            completionist: cleanedSearchResults.completionist
+                        };
                         
-                        // Анализируем результаты поиска
-                        const baseSearchResults = await extractGameCompletionData(page);
-                        
-                        if (baseSearchResults) {
-                            console.log('Found game without suffix:', baseSearchResults);
-                            
-                            // Создаем объект только с данными о времени
-                            result = {
-                                mainStory: baseSearchResults.mainStory,
-                                mainPlusExtras: baseSearchResults.mainPlusExtras,
-                                completionist: baseSearchResults.completionist
-                            };
-                            
-                            // Если название игры в HLTB отличается от названия в Steam, добавляем его
-                            if (baseSearchResults.title && baseSearchResults.title !== gameName) {
-                                result.hltbGameTitle = baseSearchResults.title;
-                            }
-                            
-                            // Сохраняем результат в кэш
-                            await cache.add(gameName, result);
-                            
-                            // Прерываем цикл, так как нашли результат
-                            break;
+                        // Если название игры в HLTB отличается от названия в Steam, добавляем его
+                        if (cleanedSearchResults.title && cleanedSearchResults.title !== gameName) {
+                            result.hltbGameTitle = cleanedSearchResults.title;
                         }
-                    } catch (error) {
-                        console.error(`Error during search without suffix "${suffix}":`, error);
-                        // Продолжаем с следующим суффиксом
+                        
+                        // Сохраняем результат в кэш
+                        await cache.add(gameName, result);
                     }
+                } catch (error) {
+                    console.error(`Error during search with cleaned name:`, error);
                 }
             }
         }
