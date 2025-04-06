@@ -18,6 +18,19 @@ const GAME_NAME_MAP = {
     'SpellForce 2 - Demons of the Past': 'SpellForce 2: Demons of the Past',
     'Savant - Ascent': 'Savant: Ascent',
     'Hard Truck Apocalypse / Ex Machina': 'Ex Machina',
+    'Alien Rage - Unlimited': 'Alien Rage',
+    'Braid, Anniversary Edition': 'Braid: Anniversary Edition',
+    'Little Big Adventure - Twinsen\'s Quest Demo': 'Little Big Adventure: Twinsen\'s Quest Demo',
+    'Desperados - Wanted Dead or Alive': 'Desperados: Wanted Dead or Alive',
+    'Dark Messiah of Might & Magic Single Player': 'Dark Messiah of Might and Magic',
+    'Broken Sword 2 - the Smoking Mirror: Remastered (2010)': 'Broken Sword II: The Smoking Mirror Remastered',
+    'Desperados - Wanted Dead or Alive': 'Desperados: Wanted Dead or Alive',
+    'SEGA Mega Drive & Genesis Classics': 'SEGA Genesis Classics Collection',
+    'F.E.A.R.: Extraction Point': 'F.E.A.R. Extraction Point',
+    'F.E.A.R.: Perseus Mandate': 'F.E.A.R. Perseus Mandate',
+    'Gothic 1 Classic': 'Gothic',
+    'Galaxy on Fire 2™ Full HD': 'Galaxy on Fire 2 HD',
+    'Anna - Extended Edition': 'Anna: Extended Edition',
 };
 
 /**
@@ -44,6 +57,8 @@ const GAME_SUFFIXES = [
     'E.Edition',
     '(Classic)',
     'Digital Classic Edition',
+    'Steam Special Edition',
+    'Legacy Edition',
 ];
 
 module.exports = {

@@ -6,7 +6,7 @@ const path = require('path');
 const { Command } = require('commander');
 const { createBrowser, getPreparedPage, closeBrowser } = require('./utils/browser');
 
-const MAX_GAMES_TO_FETCH_FROM_HLTB = 400;
+const MAX_GAMES_TO_FETCH_FROM_HLTB = 700;
 
 /**
  * Функция для получения и отображения данных о Steam играх

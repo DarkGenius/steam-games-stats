@@ -9,6 +9,7 @@
 - Сортировка игр по времени игры
 - Вывод топ-10 игр по времени игры
 - Сохранение результатов в JSON или текстовом формате
+- Кэширование данных о времени прохождения для ускорения работы
 
 ## Установка
 
@@ -42,6 +43,7 @@ node src/index.js --steam-id <STEAM_ID> [опции]
 Опции:
 - `--format <format>` - формат вывода (json или text, по умолчанию text)
 - `--add-how-long` - добавить информацию о времени прохождения с HowLongToBeat
+- `--update-cache` - обновить кэш данных о времени прохождения (игнорировать существующие кэшированные данные)
 
 Пример:
 ```bash
@@ -53,12 +55,15 @@ node src/index.js --steam-id 76561234567890123 --add-how-long --format text
 Получение информации о времени прохождения конкретной игры:
 
 ```bash
-node src/index.js --how-long "название игры"
+node src/index.js --how-long "название игры" [опции]
 ```
+
+Опции:
+- `--update-cache` - обновить кэш данных о времени прохождения (игнорировать существующие кэшированные данные)
 
 Пример:
 ```bash
-node src/index.js --how-long "The Witcher 3: Wild Hunt"
+node src/index.js --how-long "The Witcher 3: Wild Hunt" --update-cache
 ```
 
 ## Формат вывода
@@ -78,7 +83,7 @@ node src/index.js --how-long "The Witcher 3: Wild Hunt"
 [
   {
     "name": "Название игры",
-    "playtime_forever": время_в_минутах,
+    "playtime_forever": время_в_часах,
     "howLongToBeat": {
       "title": "Название игры на HowLongToBeat",
       "mainStory": время_в_часах,
