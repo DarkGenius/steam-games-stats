@@ -1,12 +1,13 @@
 const { getAndSortGames, isValidSteamId, getSteamId } = require('./utils/steam');
 const { getGameCompletionTime } = require('./api/hltb');
 const { formatExecutionTime } = require('./utils/common');
+const { exportGamesToExcel } = require('./utils/excel');
 const fs = require('fs');
 const path = require('path');
 const { Command } = require('commander');
 const { createBrowser, getPreparedPage, closeBrowser } = require('./utils/browser');
 
-const MAX_GAMES_TO_FETCH_FROM_HLTB = 700;
+const MAX_GAMES_TO_FETCH_FROM_HLTB = 1000;
 
 /**
  * Функция для получения и отображения данных о Steam играх
@@ -91,18 +92,34 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
             }
             
             // Определяем расширение файла и путь
-            const extension = options.format === 'text' ? '.txt' : '.json';
+            let extension;
+            switch (options.format) {
+                case 'text':
+                    extension = '.txt';
+                    break;
+                case 'json':
+                    extension = '.json';
+                    break;
+                case 'excel':
+                    extension = '.xlsx';
+                    break;
+                default:
+                    extension = '.txt';
+            }
+            
             const filePath = path.join(dataDir, `${steamId}_games${extension}`);
             
             // Сохраняем игры в файл в зависимости от формата
             if (options.format === 'text') {
                 await saveGamesToTextFile(games, steamId);
-            } else {
+            } else if (options.format === 'json') {
                 // Сохраняем в формате JSON
                 fs.writeFileSync(filePath, JSON.stringify(games, null, 2));
+                console.log(`\nGames saved to ${filePath}`);
+            } else if (options.format === 'excel') {
+                // Экспортируем в Excel
+                await exportGamesToExcel(games, filePath);
             }
-            
-            console.log(`\nGames saved to ${filePath}`);
         }
     } catch (error) {
         console.error('Error:', error.message);
@@ -193,7 +210,7 @@ const program = new Command();
 program
     .option('--steam-id <id>', 'Steam ID to fetch games for')
     .option('--how-long <game>', 'Get completion time for a specific game')
-    .option('--format <format>', 'Output format (json or text)', 'text')
+    .option('--format <format>', 'Output format (json, text, or excel)', 'text')
     .option('--add-how-long', 'Add HowLongToBeat information to Steam games')
     .option('--update-cache', 'Update cache for HowLongToBeat')
     .parse(process.argv);

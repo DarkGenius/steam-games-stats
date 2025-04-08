@@ -8,8 +8,9 @@
 - Получение информации о времени прохождения игр с сайта HowLongToBeat
 - Сортировка игр по времени игры
 - Вывод топ-10 игр по времени игры
-- Сохранение результатов в JSON или текстовом формате
+- Сохранение результатов в JSON, текстовом формате или Excel
 - Кэширование данных о времени прохождения для ускорения работы
+- Расчет оставшегося времени для прохождения основной сюжетной линии
 
 ## Установка
 
@@ -41,13 +42,13 @@ node src/index.js --steam-id <STEAM_ID> [опции]
 ```
 
 Опции:
-- `--format <format>` - формат вывода (json или text, по умолчанию text)
+- `--format <format>` - формат вывода (json, text или excel, по умолчанию text)
 - `--add-how-long` - добавить информацию о времени прохождения с HowLongToBeat
 - `--update-cache` - обновить кэш данных о времени прохождения (игнорировать существующие кэшированные данные)
 
 Пример:
 ```bash
-node src/index.js --steam-id 76561234567890123 --add-how-long --format text
+node src/index.js --steam-id 76561234567890123 --add-how-long --format excel
 ```
 
 ### Режим HowLongToBeat
@@ -72,9 +73,9 @@ node src/index.js --how-long "The Witcher 3: Wild Hunt" --update-cache
 
 ```
 1. Название игры (время игры в часах)
-   Main Story: X hours
-   Main + Extras: Y hours
-   Completionist: Z hours
+   Main Story: X.XX hours
+   Main + Extras: Y.YY hours
+   Completionist: Z.ZZ hours
 ```
 
 ### JSON формат (--format json)
@@ -83,7 +84,7 @@ node src/index.js --how-long "The Witcher 3: Wild Hunt" --update-cache
 [
   {
     "name": "Название игры",
-    "playtime_forever": время_в_часах,
+    "playtime_forever": время_в_минутах,
     "howLongToBeat": {
       "title": "Название игры на HowLongToBeat",
       "mainStory": время_в_часах,
@@ -94,10 +95,23 @@ node src/index.js --how-long "The Witcher 3: Wild Hunt" --update-cache
 ]
 ```
 
+### Excel формат (--format excel)
+
+При использовании опции `--format excel` создается Excel файл со следующими листами:
+- **Steam Games** - основной лист с данными о играх, включая:
+  - Название игры
+  - Время игры (часы)
+  - Main Story (часы)
+  - Осталось до прохождения (часы) - расчетное время, оставшееся для завершения основной сюжетной линии
+  - Main + Extras (часы)
+  - Completionist (часы)
+- **Информация** - дополнительный лист с метаданными
+
 ## Зависимости
 
 - Node.js
 - axios - HTTP клиент для работы с API
 - commander - парсинг аргументов командной строки
 - dotenv - работа с переменными окружения
-- puppeteer - веб-скрапинг для HowLongToBeat 
+- puppeteer - веб-скрапинг для HowLongToBeat
+- exceljs - работа с Excel файлами 
