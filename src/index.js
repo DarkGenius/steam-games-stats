@@ -58,6 +58,14 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
                 console.log(`Fetching completion time for: ${game.name}`);
                 const completionTime = await getGameCompletionTime(game.name, browser, options.updateCache);
                 game.howLongToBeat = completionTime;
+                
+                // Вычисляем оставшееся время для прохождения
+                if (game.playtime_forever && game.howLongToBeat?.mainStory) {
+                    const playtimeHours = game.playtime_forever / 60;
+                    const mainStoryHours = game.howLongToBeat.mainStory;
+                    const remaining = mainStoryHours - playtimeHours;
+                    game.howLongToBeat.remainingTime = remaining > 0 ? parseFloat(remaining.toFixed(2)) : 0;
+                }
             }
         }
 
@@ -78,6 +86,9 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
                 }
                 if (hltb.completionist) {
                     output += `\n  Completionist: ${hltb.completionist} hours`;
+                }
+                if (hltb.remainingTime !== undefined) {
+                    output += `\n  Remaining Time: ${hltb.remainingTime} hours`;
                 }
             }
             console.log(output);
@@ -198,7 +209,11 @@ async function saveGamesToTextFile(games, steamId) {
     const fileContent = games.map((game, index) => {
         const completionTimes = game.howLongToBeat || {};
         const playtimeHours = (game.playtime_forever / 60).toFixed(1);
-        return `${index + 1}. ${game.name} (playTime: ${playtimeHours} hours, mainStory: ${completionTimes.mainStory || 'N/A'} hours, mainAndExtras: ${completionTimes.mainPlusExtras || 'N/A'} hours, completionist: ${completionTimes.completionist || 'N/A'} hours)`;
+        let remainingInfo = '';
+        if (completionTimes.remainingTime !== undefined) {
+            remainingInfo = `, remainingTime: ${completionTimes.remainingTime} hours`;
+        }
+        return `${index + 1}. ${game.name} (playTime: ${playtimeHours} hours, mainStory: ${completionTimes.mainStory || 'N/A'} hours, mainAndExtras: ${completionTimes.mainPlusExtras || 'N/A'} hours, completionist: ${completionTimes.completionist || 'N/A'} hours${remainingInfo})`;
     }).join('\n');
 
     fs.writeFileSync(fileName, fileContent, 'utf8');

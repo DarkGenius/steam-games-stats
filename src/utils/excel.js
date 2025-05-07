@@ -29,9 +29,9 @@ async function exportGamesToExcel(games, filename) {
     
     // Добавляем данные
     games.forEach(game => {
-        // Вычисляем оставшееся время для прохождения
-        let remainingTime = null;
-        if (game.playtime_forever && game.howLongToBeat?.mainStory) {
+        // Вычисляем оставшееся время для прохождения если оно ещё не вычислено
+        let remainingTime = game.howLongToBeat?.remainingTime;
+        if (remainingTime === undefined && game.playtime_forever && game.howLongToBeat?.mainStory) {
             const playtimeHours = game.playtime_forever / 60;
             const mainStoryHours = game.howLongToBeat.mainStory;
             const remaining = mainStoryHours - playtimeHours;
