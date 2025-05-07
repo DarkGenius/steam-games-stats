@@ -7,7 +7,7 @@
  * Ключ - название игры в Steam
  * Значение - название игры в HowLongToBeat
  */
-const GAME_NAME_MAP = {
+export const GAME_NAME_MAP: Record<string, string> = {
     'Grand Theft Auto V Legacy': 'GTA V',
     'Epistory - Typing Chronicles': 'Epistory: Typing Chronicle',
     'Hard Truck: Apocalypse Rise Of Clans / Ex Machina: Meridian 113': 'Ex Machina: Meridian 113',
@@ -24,7 +24,6 @@ const GAME_NAME_MAP = {
     'Desperados - Wanted Dead or Alive': 'Desperados: Wanted Dead or Alive',
     'Dark Messiah of Might & Magic Single Player': 'Dark Messiah of Might and Magic',
     'Broken Sword 2 - the Smoking Mirror: Remastered (2010)': 'Broken Sword II: The Smoking Mirror Remastered',
-    'Desperados - Wanted Dead or Alive': 'Desperados: Wanted Dead or Alive',
     'SEGA Mega Drive & Genesis Classics': 'SEGA Genesis Classics Collection',
     'F.E.A.R.: Extraction Point': 'F.E.A.R. Extraction Point',
     'F.E.A.R.: Perseus Mandate': 'F.E.A.R. Perseus Mandate',
@@ -37,7 +36,7 @@ const GAME_NAME_MAP = {
  * Массив популярных суффиксов названий игр
  * Используется для поиска базового названия игры без суффикса
  */
-const GAME_SUFFIXES = [
+export const GAME_SUFFIXES: string[] = [
     'Enhanced Edition',
     'Definitive Edition',
     'Remastered',
@@ -59,9 +58,4 @@ const GAME_SUFFIXES = [
     'Digital Classic Edition',
     'Steam Special Edition',
     'Legacy Edition',
-];
-
-module.exports = {
-    GAME_NAME_MAP,
-    GAME_SUFFIXES
-}; 
+]; 

@@ -1,9 +1,9 @@
 /**
  * Форматирует время выполнения в миллисекундах в читаемый формат
- * @param {number} ms - Время в миллисекундах
- * @returns {string} Отформатированное время
+ * @param ms - Время в миллисекундах
+ * @returns Отформатированное время
  */
-function formatExecutionTime(ms) {
+export function formatExecutionTime(ms: number): string {
     if (ms < 1000) {
         return `${ms}ms`;
     } else if (ms < 60000) {
@@ -13,8 +13,4 @@ function formatExecutionTime(ms) {
         const seconds = ((ms % 60000) / 1000).toFixed(0);
         return `${minutes}m ${seconds}s`;
     }
-}
-
-module.exports = {
-    formatExecutionTime
-}; 
+} 

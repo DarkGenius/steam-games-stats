@@ -1,13 +1,14 @@
-const ExcelJS = require('exceljs');
-const path = require('path');
+import * as ExcelJS from 'exceljs';
+import * as path from 'path';
+import { SteamGame } from '../types';
 
 /**
  * Экспортирует данные о играх в Excel файл
- * @param {Array} games - Массив объектов с данными об играх
- * @param {string} filename - Имя файла для сохранения (без расширения)
- * @returns {Promise<string>} - Путь к сохраненному файлу
+ * @param games - Массив объектов с данными об играх
+ * @param filename - Имя файла для сохранения (без расширения)
+ * @returns - Путь к сохраненному файлу
  */
-async function exportGamesToExcel(games, filename) {
+export async function exportGamesToExcel(games: SteamGame[], filename: string): Promise<string> {
     // Создаем новую книгу Excel
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Steam Games Stats';
@@ -30,7 +31,7 @@ async function exportGamesToExcel(games, filename) {
     // Добавляем данные
     games.forEach(game => {
         // Вычисляем оставшееся время для прохождения если оно ещё не вычислено
-        let remainingTime = game.howLongToBeat?.remainingTime;
+        let remainingTime: number | string | null | undefined = game.howLongToBeat?.remainingTime;
         if (remainingTime === undefined && game.playtime_forever && game.howLongToBeat?.mainStory) {
             const playtimeHours = game.playtime_forever / 60;
             const mainStoryHours = game.howLongToBeat.mainStory;
@@ -121,8 +122,4 @@ async function exportGamesToExcel(games, filename) {
     
     console.log(`Данные экспортированы в файл ${filePath}`);
     return filePath;
-}
-
-module.exports = {
-    exportGamesToExcel
-}; 
+} 

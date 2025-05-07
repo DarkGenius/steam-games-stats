@@ -1,23 +1,25 @@
-const { getAndSortGames, isValidSteamId, getSteamId } = require('./utils/steam');
-const { getGameCompletionTime } = require('./api/hltb');
-const { formatExecutionTime } = require('./utils/common');
-const { exportGamesToExcel } = require('./utils/excel');
-const fs = require('fs');
-const path = require('path');
-const { Command } = require('commander');
-const { createBrowser, getPreparedPage, closeBrowser } = require('./utils/browser');
+import { getAndSortGames, isValidSteamId, getSteamId } from './utils/steam';
+import { getGameCompletionTime } from './api/hltb';
+import { formatExecutionTime } from './utils/common';
+import { exportGamesToExcel } from './utils/excel';
+import * as fs from 'fs';
+import * as path from 'path';
+import { Command } from 'commander';
+import { createBrowser, getPreparedPage, closeBrowser } from './utils/browser';
+import { SteamGame, CommandOptions } from './types';
+import { Browser, Page } from 'puppeteer';
 
 const MAX_GAMES_TO_FETCH_FROM_HLTB = 1000;
 
 /**
  * Функция для получения и отображения данных о Steam играх
- * @param {string} steamIdOrVanityUrl - Steam ID или vanity URL
- * @param {Object} options - Объект с опциями командной строки
+ * @param steamIdOrVanityUrl - Steam ID или vanity URL
+ * @param options - Объект с опциями командной строки
  */
-async function handleSteamMode(steamIdOrVanityUrl, options) {
+async function handleSteamMode(steamIdOrVanityUrl: string, options: CommandOptions): Promise<void> {
     const startTime = Date.now();
-    let browser = null;
-    let page = null;
+    let browser: Browser | null = null;
+    let page: Page | null = null;
     try {
         // Проверяем, что передан Steam ID или vanity URL
         if (!steamIdOrVanityUrl) {
@@ -57,14 +59,16 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
             for (const game of topGames) {
                 console.log(`Fetching completion time for: ${game.name}`);
                 const completionTime = await getGameCompletionTime(game.name, browser, options.updateCache);
-                game.howLongToBeat = completionTime;
-                
-                // Вычисляем оставшееся время для прохождения
-                if (game.playtime_forever && game.howLongToBeat?.mainStory) {
-                    const playtimeHours = game.playtime_forever / 60;
-                    const mainStoryHours = game.howLongToBeat.mainStory;
-                    const remaining = mainStoryHours - playtimeHours;
-                    game.howLongToBeat.remainingTime = remaining > 0 ? parseFloat(remaining.toFixed(2)) : 0;
+                if (completionTime !== null) {
+                    game.howLongToBeat = completionTime;
+                    
+                    // Вычисляем оставшееся время для прохождения
+                    if (game.playtime_forever && game.howLongToBeat?.mainStory) {
+                        const playtimeHours = game.playtime_forever / 60;
+                        const mainStoryHours = game.howLongToBeat.mainStory;
+                        const remaining = mainStoryHours - playtimeHours;
+                        game.howLongToBeat.remainingTime = remaining > 0 ? parseFloat(remaining.toFixed(2)) : 0;
+                    }
                 }
             }
         }
@@ -103,7 +107,7 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
             }
             
             // Определяем расширение файла и путь
-            let extension;
+            let extension: string;
             switch (options.format) {
                 case 'text':
                     extension = '.txt';
@@ -133,7 +137,7 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
             }
         }
     } catch (error) {
-        console.error('Error:', error.message);
+        console.error('Error:', (error as Error).message);
         process.exit(1);
     } finally {
         // Закрываем страницу и браузер в конце работы
@@ -152,10 +156,10 @@ async function handleSteamMode(steamIdOrVanityUrl, options) {
 
 /**
  * Функция для получения и отображения данных о времени прохождения игры
- * @param {string} gameName - Название игры
- * @param {boolean} updateCache - Флаг, указывающий, что нужно обновить данные из кэша
+ * @param gameName - Название игры
+ * @param updateCache - Флаг, указывающий, что нужно обновить данные из кэша
  */
-async function handleHowLongMode(gameName, updateCache) {
+async function handleHowLongMode(gameName: string, updateCache?: boolean): Promise<void> {
     const startTime = Date.now();
     try {
         if (!gameName) {
@@ -190,7 +194,7 @@ async function handleHowLongMode(gameName, updateCache) {
             console.log('Completionist: Not available');
         }
     } catch (error) {
-        console.error('Error:', error.message);
+        console.error('Error:', (error as Error).message);
         process.exit(1);
     } finally {
         // Выводим время выполнения
@@ -201,10 +205,10 @@ async function handleHowLongMode(gameName, updateCache) {
 
 /**
  * Сохраняет список игр в текстовый файл
- * @param {Array} games - Массив игр
- * @param {string} steamId - Steam ID пользователя
+ * @param games - Массив игр
+ * @param steamId - Steam ID пользователя
  */
-async function saveGamesToTextFile(games, steamId) {
+async function saveGamesToTextFile(games: SteamGame[], steamId: string): Promise<void> {
     const fileName = `data/${steamId}_games.txt`;
     const fileContent = games.map((game, index) => {
         const completionTimes = game.howLongToBeat || {};
@@ -230,7 +234,7 @@ program
     .option('--update-cache', 'Update cache for HowLongToBeat')
     .parse(process.argv);
 
-const options = program.opts();
+const options = program.opts() as CommandOptions;
 
 // Проверяем наличие обязательных параметров
 if (!options.steamId && !options.howLong) {

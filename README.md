@@ -11,6 +11,7 @@
 - Сохранение результатов в JSON, текстовом формате или Excel
 - Кэширование данных о времени прохождения для ускорения работы
 - Расчет оставшегося времени для прохождения основной сюжетной линии
+- Поддержка TypeScript
 
 ## Установка
 
@@ -38,7 +39,7 @@ STEAM_API_KEY=ваш_api_ключ
 Получение статистики по играм Steam пользователя:
 
 ```bash
-node src/index.js --steam-id <STEAM_ID> [опции]
+npm start -- --steam-id <STEAM_ID> [опции]
 ```
 
 Опции:
@@ -48,7 +49,7 @@ node src/index.js --steam-id <STEAM_ID> [опции]
 
 Пример:
 ```bash
-node src/index.js --steam-id 76561234567890123 --add-how-long --format excel
+npm start -- --steam-id 76561234567890123 --add-how-long --format excel
 ```
 
 ### Режим HowLongToBeat
@@ -56,7 +57,7 @@ node src/index.js --steam-id 76561234567890123 --add-how-long --format excel
 Получение информации о времени прохождения конкретной игры:
 
 ```bash
-node src/index.js --how-long "название игры" [опции]
+npm start -- --how-long "название игры" [опции]
 ```
 
 Опции:
@@ -64,7 +65,25 @@ node src/index.js --how-long "название игры" [опции]
 
 Пример:
 ```bash
-node src/index.js --how-long "The Witcher 3: Wild Hunt" --update-cache
+npm start -- --how-long "The Witcher 3: Wild Hunt" --update-cache
+```
+
+## Режимы запуска для разработки
+
+Проект написан на TypeScript и предоставляет несколько способов запуска:
+
+```bash
+# Стандартный запуск
+npm start -- [опции]
+
+# Запуск в режиме разработки с автоматической перезагрузкой при изменениях
+npm run dev -- [опции]
+
+# Компиляция TypeScript в JavaScript
+npm run build
+
+# Проверка типов без компиляции
+npm run lint
 ```
 
 ## Формат вывода
@@ -76,6 +95,7 @@ node src/index.js --how-long "The Witcher 3: Wild Hunt" --update-cache
    Main Story: X.XX hours
    Main + Extras: Y.YY hours
    Completionist: Z.ZZ hours
+   Remaining Time: R.RR hours
 ```
 
 ### JSON формат (--format json)
@@ -89,7 +109,8 @@ node src/index.js --how-long "The Witcher 3: Wild Hunt" --update-cache
       "title": "Название игры на HowLongToBeat",
       "mainStory": время_в_часах,
       "mainPlusExtras": время_в_часах,
-      "completionist": время_в_часах
+      "completionist": время_в_часах,
+      "remainingTime": оставшееся_время_в_часах
     }
   }
 ]
@@ -110,8 +131,11 @@ node src/index.js --how-long "The Witcher 3: Wild Hunt" --update-cache
 ## Зависимости
 
 - Node.js
+- TypeScript - статически типизированный JavaScript
 - axios - HTTP клиент для работы с API
 - commander - парсинг аргументов командной строки
 - dotenv - работа с переменными окружения
 - puppeteer - веб-скрапинг для HowLongToBeat
-- exceljs - работа с Excel файлами 
+- exceljs - работа с Excel файлами
+- ts-node - запуск TypeScript кода без предварительной компиляции
+- nodemon - автоматическая перезагрузка при изменениях в коде 

@@ -1,14 +1,19 @@
-const fs = require('fs').promises;
-const path = require('path');
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { CacheData } from '../types';
 
 /**
  * Класс для работы с кэшем
  */
-class Cache {
+export class Cache {
+    private cacheFile: string;
+    private cache: CacheData;
+    private initialized: boolean;
+
     /**
-     * @param {string} cacheFile - Путь к файлу кэша
+     * @param cacheFile - Путь к файлу кэша
      */
-    constructor(cacheFile) {
+    constructor(cacheFile: string) {
         this.cacheFile = cacheFile;
         this.cache = {};
         this.initialized = false;
@@ -17,7 +22,7 @@ class Cache {
     /**
      * Инициализация кэша
      */
-    async init() {
+    async init(): Promise<void> {
         if (this.initialized) return;
         try {
             // Создаем директорию для кэша, если её нет
@@ -30,7 +35,7 @@ class Cache {
                 this.cache = JSON.parse(data);
                 this.initialized = true;
             } catch (error) {
-                if (error.code === 'ENOENT') {
+                if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
                     // Если файл не существует, создаем его с пустым объектом
                     await fs.writeFile(this.cacheFile, '{}', 'utf8');
                 } else {
@@ -45,11 +50,11 @@ class Cache {
 
     /**
      * Создает и инициализирует новый экземпляр кэша
-     * @param {string} cacheFile - Путь к файлу кэша
-     * @returns {Promise<Cache>} Инициализированный экземпляр кэша
+     * @param cacheFile - Путь к файлу кэша
+     * @returns Инициализированный экземпляр кэша
      * @throws {Error} Ошибка при инициализации кэша
      */
-    static async create(cacheFile) {
+    static async create(cacheFile: string): Promise<Cache> {
         const cache = new Cache(cacheFile);
         await cache.init();
         return cache;
@@ -57,19 +62,19 @@ class Cache {
 
     /**
      * Получить значение из кэша
-     * @param {string} key - Ключ
-     * @returns {Object|undefined} Значение из кэша или undefined, если значение не найдено
+     * @param key - Ключ
+     * @returns Значение из кэша или undefined, если значение не найдено
      */
-    get(key) {
+    get(key: string): any {
         return this.cache[key];
     }
 
     /**
      * Добавить значение в кэш
-     * @param {string} key - Ключ
-     * @param {Object} value - Значение
+     * @param key - Ключ
+     * @param value - Значение
      */
-    async add(key, value) {
+    async add(key: string, value: any): Promise<void> {
         this.cache[key] = value;
         await this.save();
     }
@@ -77,7 +82,7 @@ class Cache {
     /**
      * Сохранить кэш в файл
      */
-    async save() {
+    async save(): Promise<void> {
         try {
             await fs.writeFile(this.cacheFile, JSON.stringify(this.cache, null, 2), 'utf8');
         } catch (error) {
@@ -85,6 +90,4 @@ class Cache {
             throw error;
         }
     }
-}
-
-module.exports = Cache; 
+} 

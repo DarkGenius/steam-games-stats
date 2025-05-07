@@ -1,21 +1,22 @@
-const steamApi = require('../api/steam');
-const fs = require('fs').promises;
+import steamApi from '../api/steam';
+import * as fs from 'fs/promises';
+import { SteamGame } from '../types';
 
 /**
  * Проверяет, является ли строка числовым Steam ID
- * @param {string} str - Строка для проверки
- * @returns {boolean}
+ * @param str - Строка для проверки
+ * @returns true если строка является числовым Steam ID
  */
-function isNumericSteamId(str) {
+function isNumericSteamId(str: string): boolean {
     return /^\d+$/.test(str);
 }
 
 /**
  * Получает Steam ID из имени аккаунта или числового ID
- * @param {string} steamIdOrVanityUrl - Steam ID или имя аккаунта
- * @returns {Promise<string>} Steam ID
+ * @param steamIdOrVanityUrl - Steam ID или имя аккаунта
+ * @returns Steam ID
  */
-async function getSteamId(steamIdOrVanityUrl) {
+export async function getSteamId(steamIdOrVanityUrl: string): Promise<string> {
     if (isNumericSteamId(steamIdOrVanityUrl)) {
         return steamIdOrVanityUrl;
     }
@@ -27,17 +28,17 @@ async function getSteamId(steamIdOrVanityUrl) {
         }
         return steamId;
     } catch (error) {
-        console.error(`Error resolving vanity URL: ${error.message}`);
+        console.error(`Error resolving vanity URL: ${(error as Error).message}`);
         throw error;
     }
 }
 
 /**
  * Получает и сортирует список игр пользователя Steam
- * @param {string} steamIdOrVanityUrl - Steam ID или имя аккаунта
- * @returns {Promise<Array>} Отсортированный список игр
+ * @param steamIdOrVanityUrl - Steam ID или имя аккаунта
+ * @returns Отсортированный список игр
  */
-async function getAndSortGames(steamIdOrVanityUrl) {
+export async function getAndSortGames(steamIdOrVanityUrl: string): Promise<SteamGame[]> {
     const steamId = await getSteamId(steamIdOrVanityUrl);
     const games = await steamApi.getOwnedGames(steamId);
     return [...games].sort((a, b) => b.playtime_forever - a.playtime_forever);
@@ -45,11 +46,10 @@ async function getAndSortGames(steamIdOrVanityUrl) {
 
 /**
  * Сохраняет список игр в файл
- * @param {Array} games - Список игр
- * @param {string} steamId - Steam ID пользователя
- * @returns {Promise<void>}
+ * @param games - Список игр
+ * @param steamId - Steam ID пользователя
  */
-async function saveGamesToFile(games, steamId) {
+export async function saveGamesToFile(games: SteamGame[], steamId: string): Promise<void> {
     const filename = `games${steamId}.txt`;
     const content = games.map(game => {
         const playtimeHours = Math.round(game.playtime_forever / 60);
@@ -62,10 +62,10 @@ async function saveGamesToFile(games, steamId) {
 
 /**
  * Выводит топ N игр по времени игры
- * @param {Array} games - Отсортированный список игр
- * @param {number} count - Количество игр для вывода
+ * @param games - Отсортированный список игр
+ * @param count - Количество игр для вывода
  */
-function displayTopGames(games, count = 10) {
+export function displayTopGames(games: SteamGame[], count = 10): void {
     console.log(`\nTop ${count} games by playtime:`);
     games.slice(0, count).forEach((game, index) => {
         const playtimeHours = Math.round(game.playtime_forever / 60);
@@ -75,17 +75,9 @@ function displayTopGames(games, count = 10) {
 
 /**
  * Проверяет валидность Steam ID или имени аккаунта
- * @param {string} steamIdOrVanityUrl - Steam ID или имя аккаунта для проверки
- * @returns {boolean}
+ * @param steamIdOrVanityUrl - Steam ID или имя аккаунта для проверки
+ * @returns true если Steam ID или имя аккаунта валидны
  */
-function isValidSteamId(steamIdOrVanityUrl) {
-    return steamIdOrVanityUrl && steamIdOrVanityUrl.length > 0;
-}
-
-module.exports = {
-    getAndSortGames,
-    saveGamesToFile,
-    displayTopGames,
-    isValidSteamId,
-    getSteamId
-}; 
+export function isValidSteamId(steamIdOrVanityUrl: string): boolean {
+    return Boolean(steamIdOrVanityUrl && steamIdOrVanityUrl.length > 0);
+} 

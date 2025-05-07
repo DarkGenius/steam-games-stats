@@ -1,13 +1,19 @@
-const axios = require('axios');
-require('dotenv').config();
+import axios from 'axios';
+import { SteamGame } from '../types';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 class SteamAPI {
+    private apiKey: string;
+    private baseUrl: string;
+
     constructor() {
-        this.apiKey = process.env.STEAM_API_KEY;
+        this.apiKey = process.env.STEAM_API_KEY || '';
         this.baseUrl = 'https://api.steampowered.com';
     }
 
-    async getSteamId(vanityUrl) {
+    async getSteamId(vanityUrl: string): Promise<string> {
         try {
             const response = await axios.get(`${this.baseUrl}/ISteamUser/ResolveVanityURL/v1/`, {
                 params: {
@@ -17,12 +23,12 @@ class SteamAPI {
             });
             return response.data.response.steamid;
         } catch (error) {
-            console.error('Error getting Steam ID:', error.message);
+            console.error('Error getting Steam ID:', (error as Error).message);
             throw error;
         }
     }
 
-    async getOwnedGames(steamId) {
+    async getOwnedGames(steamId: string): Promise<SteamGame[]> {
         try {
             const response = await axios.get(`${this.baseUrl}/IPlayerService/GetOwnedGames/v1/`, {
                 params: {
@@ -34,10 +40,10 @@ class SteamAPI {
             });
             return response.data.response.games || [];
         } catch (error) {
-            console.error('Error getting owned games:', error.message);
+            console.error('Error getting owned games:', (error as Error).message);
             throw error;
         }
     }
 }
 
-module.exports = new SteamAPI(); 
+export default new SteamAPI(); 

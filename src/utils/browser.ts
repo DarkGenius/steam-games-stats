@@ -1,16 +1,16 @@
-const puppeteer = require('puppeteer');
+import * as puppeteer from 'puppeteer';
 
-const FILTERED_CLIENT_ERRORS = [
+const FILTERED_CLIENT_ERRORS: string[] = [
     'Failed to load resource',
     'Refused to execute script',
     'geolocation.onetrust.com',
-]
+];
 
 /**
  * Создает новый экземпляр браузера Puppeteer
- * @returns {Promise<Object>} Экземпляр браузера
+ * @returns Экземпляр браузера
  */
-async function createBrowser() {
+export async function createBrowser(): Promise<puppeteer.Browser> {
     console.log('Launching browser...');
     const browser = await puppeteer.launch({
         headless: true,
@@ -33,7 +33,7 @@ async function createBrowser() {
     return browser; 
 }
 
-async function preparePage(page) {
+async function preparePage(page: puppeteer.Page): Promise<void> {
     // Устанавливаем User-Agent и дополнительные заголовки
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
     await page.setExtraHTTPHeaders({
@@ -69,7 +69,7 @@ async function preparePage(page) {
             case 'error':
                 console.error(`[Browser Error] ${text}`);
                 break;
-            case 'warning':
+            case 'warn':
                 console.warn(`[Browser Warning] ${text}`);
                 break;
             case 'info':
@@ -93,10 +93,10 @@ async function preparePage(page) {
 /**
  * Получает готовую страницу: если в браузере есть открытая страница, возвращает её,
  * иначе создает новую и настраивает с необходимыми параметрами
- * @param {Object} browser - Экземпляр браузера
- * @returns {Promise<Object>} Настроенная страница
+ * @param browser - Экземпляр браузера
+ * @returns Настроенная страница
  */
-async function getPreparedPage(browser) {
+export async function getPreparedPage(browser: puppeteer.Browser): Promise<puppeteer.Page> {
     // Проверяем наличие открытых страниц в браузере
     const pages = await browser.pages();
     if (pages.length > 0) {
@@ -113,17 +113,11 @@ async function getPreparedPage(browser) {
 
 /**
  * Закрывает браузер
- * @param {Object} browser - Экземпляр браузера
+ * @param browser - Экземпляр браузера
  */
-async function closeBrowser(browser) {
+export async function closeBrowser(browser: puppeteer.Browser): Promise<void> {
     if (browser) {
         console.log('Browser closed');
         await browser.close();
     }
-}
-
-module.exports = {
-    createBrowser,
-    getPreparedPage,
-    closeBrowser
-}; 
+} 
