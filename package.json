@@ -3,21 +3,29 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "start": "ts-node src/index.ts",
-    "dev": "nodemon --exec ts-node src/index.ts",
-    "build": "tsc",
-    "lint": "tsc --noEmit"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "cli:dev": "nodemon --exec ts-node src/index.ts",
+    "cli:build": "tsc",
+    "cli:start": "node dist/index.js"
   },
   "author": "",
   "license": "ISC",
   "description": "Steam games statistics with HowLongToBeat integration",
   "dependencies": {
+    "@gravity-ui/icons": "^2.13.0",
+    "@gravity-ui/uikit": "^7.11.0",
     "axios": "^1.6.7",
     "cheerio": "^1.0.0",
     "commander": "^13.1.0",
     "dotenv": "^16.4.5",
     "exceljs": "^4.4.0",
-    "puppeteer": "^24.6.0"
+    "next": "^14.2.3",
+    "puppeteer": "^24.6.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/cheerio": "^0.22.35",
