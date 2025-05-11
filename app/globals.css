@@ -1,62 +1,3 @@
-/* Глобальные стили */
-:root {
-  --g-color-base-background: #f5f5f6;
-  --g-color-base-generic: #f0f2f3;
-  --g-color-base-simple-hover: rgba(0, 0, 0, 0.04);
-  --g-color-base-selection: rgba(0, 0, 0, 0.08);
-  --g-color-line-generic: #e6e8ea;
-  --g-color-line-generic-hover: #d9dde0;
-  --g-color-text-primary: #000000;
-  --g-color-text-secondary: #7d7d7d;
-  --g-color-text-hint: #a9a9a9;
-  --g-color-text-link: #0e5ace;
-  --g-color-text-positive: #1a9e32;
-  --g-color-text-warning: #d9a100;
-  --g-color-text-danger: #ff1a1a;
-  --g-color-text-info: #0e5ace;
-  --g-color-text-misc: #7d7d7d;
-  --g-color-text-utility: #7d7d7d;
-  --g-color-text-utility-minor: #a9a9a9;
-  --g-color-text-utility-positive: #1a9e32;
-  --g-color-text-utility-warning: #d9a100;
-  --g-color-text-utility-danger: #ff1a1a;
-  --g-color-text-utility-info: #0e5ace;
-  --g-color-text-utility-misc: #7d7d7d;
-  --g-color-text-utility-minor-positive: #1a9e32;
-  --g-color-text-utility-minor-warning: #d9a100;
-  --g-color-text-utility-minor-danger: #ff1a1a;
-  --g-color-text-utility-minor-info: #0e5ace;
-  --g-color-text-utility-minor-misc: #7d7d7d;
-  --g-color-text-utility-minor-hint: #a9a9a9;
-  --g-color-text-utility-minor-link: #0e5ace;
-  --g-color-text-utility-minor-positive-hover: #1a9e32;
-  --g-color-text-utility-minor-warning-hover: #d9a100;
-  --g-color-text-utility-minor-danger-hover: #ff1a1a;
-  --g-color-text-utility-minor-info-hover: #0e5ace;
-  --g-color-text-utility-minor-misc-hover: #7d7d7d;
-  --g-color-text-utility-minor-hint-hover: #a9a9a9;
-  --g-color-text-utility-minor-link-hover: #0e5ace;
-}
-
-/* Тёмная тема */
-[g-root-theme="dark"] {
-  --g-color-base-background: #1d1d1d;
-  --g-color-base-generic: #2d2d2d;
-  --g-color-base-simple-hover: rgba(255, 255, 255, 0.1);
-  --g-color-base-selection: rgba(255, 255, 255, 0.2);
-  --g-color-line-generic: #3d3d3d;
-  --g-color-line-generic-hover: #4d4d4d;
-  --g-color-text-primary: #ffffff;
-  --g-color-text-secondary: #b3b3b3;
-  --g-color-text-hint: #808080;
-  --g-color-text-link: #4d8ff9;
-  --g-color-text-positive: #4caf50;
-  --g-color-text-warning: #ffc107;
-  --g-color-text-danger: #f44336;
-  --g-color-text-info: #2196f3;
-  --g-color-text-misc: #9e9e9e;
-}
-
 /* Базовые стили */
 body {
   margin: 0;
@@ -64,29 +5,8 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--g-color-base-background);
-  color: var(--g-color-text-primary);
 }
 
 * {
   box-sizing: border-box;
-}
-
-/* Кастомные стили для скроллбаров */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--g-color-base-generic);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--g-color-line-generic);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--g-color-line-generic-hover);
 }
