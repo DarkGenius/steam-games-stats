@@ -1,8 +1,10 @@
 # Dependencies
 node_modules/
-npm-debug.log
-yarn-debug.log
-yarn-error.log
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Environment variables
 .env
@@ -10,8 +12,15 @@ yarn-error.log
 .env.*.local
 
 # Build output
-dist/
-build/
+/dist
+/build
+/.next
+/out
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # IDE and editor files
 .idea/
@@ -25,3 +34,19 @@ Thumbs.db
 
 # Project
 data/
+
+# Next.js
+.DS_Store
+*.pem
+
+# Local development
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# TypeScript cache
+*.tsbuildinfo

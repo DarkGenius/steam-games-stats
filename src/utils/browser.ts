@@ -11,7 +11,7 @@ const FILTERED_CLIENT_ERRORS: string[] = [
  * @returns Экземпляр браузера
  */
 export async function createBrowser(): Promise<puppeteer.Browser> {
-    console.log('Launching browser...');
+    // console.log('Launching browser...');
     const browser = await puppeteer.launch({
         headless: true,
         dumpio: false,
@@ -30,7 +30,7 @@ export async function createBrowser(): Promise<puppeteer.Browser> {
     const pages = await browser.pages();
     await preparePage(pages[0]);
 
-    return browser; 
+    return browser;
 }
 
 async function preparePage(page: puppeteer.Page): Promise<void> {
@@ -55,12 +55,12 @@ async function preparePage(page: puppeteer.Page): Promise<void> {
     page.on('console', msg => {
         const type = msg.type();
         const text = msg.text();
-        
+
         // Пропускаем сообщения, содержащие подстроки из FILTERED_CLIENT_ERRORS
         if (type === 'error' && FILTERED_CLIENT_ERRORS.some(error => text.includes(error))) {
             return;
         }
-        
+
         // Префиксируем сообщения для различения источника
         switch (type) {
             case 'log':
@@ -103,11 +103,11 @@ export async function getPreparedPage(browser: puppeteer.Browser): Promise<puppe
         console.log('Using existing page');
         return pages[0];
     }
-    
+
     console.log('Creating new page');
     const page = await browser.newPage();
     await preparePage(page);
-    
+
     return page;
 }
 
