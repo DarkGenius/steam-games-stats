@@ -24,11 +24,10 @@ export interface HowLongToBeat {
  * Интерфейс для игры Steam
  */
 export interface SteamGame {
-  appid: number;
   name: string;
-  playtime_forever: number;
-  img_icon_url?: string;
-  howLongToBeat?: HowLongToBeat;
+  playtime: number;
+  hltb: HowLongToBeat | null;
+  playtime_forever?: number;
 }
 
 /**

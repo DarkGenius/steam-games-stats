@@ -10,3 +10,12 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* Стили для Gravity UI компонентов */
+.g-text-input {
+  width: 100%;
+}
+
+.g-text-input__control {
+  width: 100%;
+} 
